@@ -57,228 +57,233 @@ class SimpleLoadBalancer(object):
         log.debug("FUNCTION: update_lb_mapping")
         if client_ip in self.CLIENTS.keys():
             if client_ip not in self.LOADBALANCER_MAP.keys():
-                """ START: Edit this section
+                selected_server = self.round_robin()  # Select the server which will handle the request
 
-				selected_server = # TODO: select the server which will handle the request
-				
-				self.LOADBALANCER_MAP[client_ip]=selected_server
-				END: Edit this section"""
+                self.LOADBALANCER_MAP[client_ip] = selected_server
 
     def send_arp_reply(self, packet, connection, outport):
         log.debug("FUNCTION: send_arp_reply")
 
-        """ START: Edit this section
-		arp_rep= # TODO: Create an ARP reply
-		arp_rep.hwtype = arp_rep.HW_TYPE_ETHERNET
-		arp_rep.prototype = arp_rep.PROTO_TYPE_IP
-		arp_rep.hwlen = 6
-		arp_rep.protolen = arp_rep.protolen
-		arp_rep.opcode = # TODO: Set the ARP TYPE to REPLY
+        arp_rep = arp()  # Create an ARP reply
+        arp_rep.hwtype = arp_rep.HW_TYPE_ETHERNET
+        arp_rep.prototype = arp_rep.PROTO_TYPE_IP
+        arp_rep.hwlen = 6
+        arp_rep.protolen = arp_rep.protolen
+        arp_rep.opcode = arp.REPLY  # Set the ARP TYPE to REPLY
 
-		arp_rep.hwdst = # TODO: Set MAC destination
-		arp_rep.hwsrc = # TODO: Set MAC source
+        arp_rep.hwdst = packet.src  # Set MAC destination
+        arp_rep.hwsrc = LOADBALANCER_MAC  # Set MAC source
 
+        # Reverse the src, dest to have an answer
+        arp_rep.protosrc = self.LOADBALANCER_IP  # Set IP source
+        arp_rep.protodst = packet.payload.protosrc  # Set IP destination
 
+        # TODO: Needed to pass in arp_rep as an argument or not to ethernet() (?)
+        eth = ethernet()  # Create an ethernet frame and set the arp_rep as it's payload.
+        eth.type = ethernet.ARP_TYPE  # Set packet Type
+        eth.dst = packet.src  # Set destination of the Ethernet Frame
+        eth.src = LOADBALANCER_MAC  # Set source of the Ethernet Frame
+        eth.set_payload(arp_rep)
 
-
-
-		#Reverse the src, dest to have an answer
-		arp_rep.protosrc = # TODO: Set IP source
-		arp_rep.protodst = # TODO: Set IP destination
-
-		
-		eth = # TODO: Create an ethernet frame and set the arp_rep as it's payload.
-		eth.type = # TODO: Set packet Typee
-		eth.dst = # TODO: Set destination of the Ethernet Frame
-		eth.src = # TODO: Set source of the Ethernet Frame
-		eth.set_payload(arp_rep)
-		
-		msg = # TODO: create the necessary Openflow Message to make the switch send the ARP Reply
-		msg.data = eth.pack()
-		
-		# TODO: Append the output port which the packet should be forwarded to.
-
-		msg.in_port = outport
-		connection.send(msg)
-		END: Edit this section"""
-
-    def send_arp_request(self, connection, ip):
-        # Difficulties? https://en.wikipedia.org/wiki/Address_Resolution_Protocol#Example
-
-        log.debug("FUNCTION: send_arp_request")
-
-        arp_req = arp()  # Create an instance of an ARP REQUEST PACKET
-        arp_req.hwtype = arp_req.HW_TYPE_ETHERNET
-        arp_req.prototype = arp_req.PROTO_TYPE_IP
-        arp_req.hwlen = 6
-        arp_req.protolen = arp_req.protolen
-        arp_req.opcode = arp.REQUEST  # Set the opcode
-        arp_req.protodst = ip  # IP the load balancer is looking for
-        arp_req.hwsrc = LOADBALANCER_MAC  # Set the MAC source of the ARP REQUEST
-        arp_req.hwdst = ETHERNET_BROADCAST_ADDRESS  # Set the MAC address in such a way that the packet is marked as a Broadcast
-        arp_req.protosrc = self.LOADBALANCER_IP  # Set the IP source of the ARP REQUEST
-
-        # TODO: Needed to pass in arp_req as an argument or not to ethernet() (?)
-        eth = ethernet()  # Create an ethernet frame and set the arp_req as it's payload.
-        eth.type = ethernet.ARP_TYPE  # Set packet Typee
-        eth.dst = ETHERNET_BROADCAST_ADDRESS  # Set the MAC address in such a way that the packet is marked as a Broadcast
-        eth.set_payload(arp_req)
-
-        msg = of.of.ofp_packet_out()  # Create the necessary Openflow Message to make the switch send the ARP Request
+        msg = of.of.ofp_packet_out()  # create the necessary Openflow Message to make the switch send the ARP Reply
         msg.data = eth.pack()
-        msg.actions.append(of.ofp_action_nw_addr(of.OFPAT_SET_NW_DST, ip))
-        msg.actions.append(of.ofp_action_output(
-            port=of.OFPP_FLOOD))  # Append an action to the message which makes the switch flood the packet out
 
+        # TODO: Correct way??
+        msg.actions.append(of.ofp_action_output(
+            port=packet.port))  # Append the output port which the packet should be forwarded to.
+
+        msg.in_port = outport
         connection.send(msg)
 
-    def install_flow_rule_client_to_server(self, event, connection, outport, client_ip, server_ip):
-        log.debug("FUNCTION: install_flow_rule_client_to_server")
-        self.install_flow_rule_server_to_client(connection, event.port, server_ip, client_ip)
 
-        """ START: Edit this section
-		msg = # TODO: Create an instance of the type of Openflow packet you need to install flow table entries
-		msg.idle_timeout = IDLE_TIMEOUT
+def send_arp_request(self, connection, ip):
+    # Difficulties? https://en.wikipedia.org/wiki/Address_Resolution_Protocol#Example
 
-		msg.match.dl_type=ethernet.IP_TYPE
-		# TODO: MATCH on destination and source IP
-		# TODO: SET dl_addr source and destination addresses
-		# TODO: SET nw_addr source and destination addresses
-		# TODO: Set Port to send matching packets out
+    log.debug("FUNCTION: send_arp_request")
 
-		 END: Edit this section"""
-        self.connection.send(msg)
-        log.info("Installed flow rule: %s -> %s" % (client_ip, server_ip))
+    arp_req = arp()  # Create an instance of an ARP REQUEST PACKET
+    arp_req.hwtype = arp_req.HW_TYPE_ETHERNET
+    arp_req.prototype = arp_req.PROTO_TYPE_IP
+    arp_req.hwlen = 6
+    arp_req.protolen = arp_req.protolen
+    arp_req.opcode = arp.REQUEST  # Set the opcode
+    arp_req.protodst = ip  # IP the load balancer is looking for
+    arp_req.hwsrc = LOADBALANCER_MAC  # Set the MAC source of the ARP REQUEST
+    arp_req.hwdst = ETHERNET_BROADCAST_ADDRESS  # Set the MAC address in such a way that the packet is marked as a Broadcast
+    arp_req.protosrc = self.LOADBALANCER_IP  # Set the IP source of the ARP REQUEST
 
-    def install_flow_rule_server_to_client(self, connection, outport, server_ip, client_ip):
-        log.debug("FUNCTION: install_flow_rule_server_to_client")
+    # TODO: Needed to pass in arp_req as an argument or not to ethernet() (?)
+    eth = ethernet()  # Create an ethernet frame and set the arp_req as it's payload.
+    eth.type = ethernet.ARP_TYPE  # Set packet Typee
+    eth.dst = ETHERNET_BROADCAST_ADDRESS  # Set the MAC address in such a way that the packet is marked as a Broadcast
+    eth.set_payload(arp_req)
 
-        """ START: Edit this section
+    msg = of.of.ofp_packet_out()  # Create the necessary Openflow Message to make the switch send the ARP Request
+    msg.data = eth.pack()
+    msg.actions.append(of.ofp_action_nw_addr(of.OFPAT_SET_NW_DST, ip))
+    msg.actions.append(of.ofp_action_output(
+        port=of.OFPP_FLOOD))  # Append an action to the message which makes the switch flood the packet out
 
-		msg = # TODO: Create an instance of the type of Openflow packet you need to install flow table entries
-		msg.idle_timeout = IDLE_TIMEOUT
+    connection.send(msg)
 
-		msg.match.dl_type=ethernet.IP_TYPE
-		# TODO: MATCH on destination and source IP
-		# TODO: SET dl_addr source and destination addresses
-		# TODO: SET nw_addr source and destination addresses
-		# TODO: Set Port to send matching packets out
 
-		END: Edit this section"""
+def install_flow_rule_client_to_server(self, event, connection, outport, client_ip, server_ip):
+    log.debug("FUNCTION: install_flow_rule_client_to_server")
+    self.install_flow_rule_server_to_client(connection, event.port, server_ip, client_ip)
 
-        self.connection.send(msg)
-        log.info("Installed flow rule: %s -> %s" % (server_ip, client_ip))
+    msg = of.ofp_flow_mod()  # Create an instance of the type of Openflow packet you need to install flow table entries
 
-    def _handle_PacketIn(self, event):
-        log.debug("FUNCTION: _handle_PacketIn")
-        packet = event.parsed
-        connection = event.connection
-        inport = event.port
-        if packet.type == packet.LLDP_TYPE or packet.type == packet.IPV6_TYPE:
-            log.info("Received LLDP or IPv6 Packet...")
+    msg.idle_timeout = IDLE_TIMEOUT
 
-        """ START: Edit this section
+    msg.match.dl_type = ethernet.IP_TYPE
+    # TODO: Match nw_dst to load balancer ip or actual server ip???
+    msg.match = of.ofp_match(nw_src=client_ip, nw_dst = self.LOADBALANCER_IP)  # MATCH on destination and source IP
 
-		elif # TODO: Handle ARP Packets
-			log.debug("Received ARP Packet")
-			response = packet.payload
-			if # TODO: Handle ARP replies
-				log.debug("ARP REPLY Received")
-				if response.protosrc not in self.SERVERS.keys():
-					# TODO: Add Servers MAC and port to SERVERS dict
-		
-			elif # TODO: Handle ARP requests
-				log.debug("ARP REQUEST Received")
-				if response.protosrc not in self.SERVERS.keys() and response.protosrc not in self.CLIENTS.keys():
-					self.CLIENTS[response.protosrc]={'client_mac':EthAddr(packet.payload.hwsrc),'port':inport}		#insert client's ip  mac and port to a forwarding table
-									
-				if (response.protosrc in self.CLIENTS.keys()and response.protodst == self.LOADBALANCER_IP):
-					log.info("Client %s sent ARP req to LB %s"%(response.protosrc,response.protodst))
-					# Load Balancer intercepts ARP Client -> Server
-					# TODO: Send ARP Reply to the client, include the event.connection object
-				
-				elif response.protosrc in self.SERVERS.keys() and response.protodst in self.CLIENTS.keys():
-					log.info("Server %s sent ARP req to client"%response.protosrc)
-					# Load Balancer intercepts ARP from Client <- Server
-					# TODO: Send ARP Reply to the Server, include the event.connection object
-				else:
-					log.info("Invalid ARP request")
+    # SET dl_addr source and destination addresses
+    msg.actions.append(of.ofp_action_dl_addr.set_dst(dl_addr=self.CLIENTS[client_ip].clients_mac))
+    msg.actions.append(of.ofp_action_dl_addr.set_src(dl_addr=self.SERVERS[server_ip].server_mac))
 
-		elif # TODO: Handle IP Packets
-			log.debug("Received IP Packet from %s" % packet.next.srcip)
-			# Handle Requests from Clients to Servers
-			# Install flow rule Client -> Server
-			if # TODO: Check if the packet is destined for the LB and the source is not a server :
+    # SET nw_addr source and destination addresses
+    msg.actions.append(of.ofp_action_nw_addr.set_dst(nw_addr=server_ip))
+    msg.actions.append(of.ofp_action_nw_addr.set_src(nw_addr=client_ip))
 
-				self.update_lb_mapping(packet.next.srcip)
-				client_ip = # TODO: Get client IP from the packet
-				server_ip = self.LOADBALANCER_MAP.get(packet.next.srcip)
-				outport = # TODO: Get Port of Server
+    # Set Port to send matching packets out
+    msg.actions.append(of.ofp_action_output(port=self.SERVERS[server_ip].port))
 
-				self.install_flow_rule_client_to_server(event,connection, outport, client_ip,server_ip)
-				
-				# TODO: Either use the code below to create a new Ethernet packet, or use Buffer_Id
-				eth = ethernet()
-				eth.type = # TODO: Set the correct Ethernet TYPE, to send an IP Packet
-				eth.dst = # TODO: Set the MAC destination
-				eth.src = # TODO: Set the MAC source
-				eth.set_payload(packet.next)
+    self.connection.send(msg)
+    log.info("Installed flow rule: %s -> %s" % (client_ip, server_ip))
 
-				# Send the first packet (which was sent to the controller from the switch)
-				# to the chosen server, so there is no packetloss
-				msg= # TODO: Create an instance of a message which can be used to instruct the switch to send a packet
-				msg.data = eth.pack()
-				msg.in_port = # TODO: Set the correct in_port
-				
-				# TODO: Add an action which sets the MAC source to the LB's MAC
-				# TODO: Add an action which sets the MAC destination to the intended destination...
 
-				# TODO: Add an action which sets the IP source
-				# TODO: Add an action which sets the IP destination
-				# TODO: Add an action which sets the Outport
+def install_flow_rule_server_to_client(self, connection, outport, server_ip, client_ip):
+    log.debug("FUNCTION: install_flow_rule_server_to_client")
 
-				connection.send(msg)
+    """ START: Edit this section
 
-			# Handle traffic from Server to Client
-			# Install flow rule Client <- Server
-			elif packet.next.dstip in self.CLIENTS.keys(): #server to client
-				log.info("Installing flow rule from Server -> Client")
-				if packet.next.srcip in self.SERVERS.keys():
+    msg = # TODO: Create an instance of the type of Openflow packet you need to install flow table entries
+    msg.idle_timeout = IDLE_TIMEOUT
 
-					server_ip = # TODO: Get the source IP from the IP Packet
+    msg.match.dl_type=ethernet.IP_TYPE
+    # TODO: MATCH on destination and source IP
+    # TODO: SET dl_addr source and destination addresses
+    # TODO: SET nw_addr source and destination addresses
+    # TODO: Set Port to send matching packets out
 
-					client_ip = self.LOADBALANCER_MAP.keys()[list(self.LOADBALANCER_MAP.values()).index(packet.next.srcip)]
-					outport=int(self.CLIENTS[client_ip].get('port'))
-					self.install_flow_rule_server_to_client(connection, outport, server_ip,client_ip)
+    END: Edit this section"""
 
-					# TODO: Either use the code below to create a new Ethernet packet, or use Buffer_Id
-					eth = ethernet()
-					eth.type =  # TODO: Set the correct Ethernet TYPE, to send an IP Packet
-					eth.dst =  # TODO: Set the MAC destination
-					eth.src =  # TODO: Set the MAC source
-					eth.set_payload(packet.next)
+    self.connection.send(msg)
+    log.info("Installed flow rule: %s -> %s" % (server_ip, client_ip))
 
-					# Send the first packet (which was sent to the controller from the switch)
-					# to the chosen server, so there is no packetloss
-					msg =  # TODO: Create an instance of a message which can be used to instruct the switch to send a packet
-					msg.data = eth.pack()
-					msg.in_port =  # TODO: Set the correct in_port
 
-					# TODO: Add an action which sets the MAC source to the LB's MAC
-					# TODO: Add an action which sets the MAC destination to the intended destination...
+def _handle_PacketIn(self, event):
+    log.debug("FUNCTION: _handle_PacketIn")
+    packet = event.parsed
+    connection = event.connection
+    inport = event.port
+    if packet.type == packet.LLDP_TYPE or packet.type == packet.IPV6_TYPE:
+        log.info("Received LLDP or IPv6 Packet...")
 
-					# TODO: Add an action which sets the IP source
-					# TODO: Add an action which sets the IP destination
-					# TODO: Add an action which sets the Outport
-		
-					self.connection.send(msg)
+    """ START: Edit this section
 
-		
-		else:
-			log.info("Unknown Packet type: %s" % packet.type)
-			return
-		END: Edit this section"""
+    elif # TODO: Handle ARP Packets
+        log.debug("Received ARP Packet")
+        response = packet.payload
+        if # TODO: Handle ARP replies
+            log.debug("ARP REPLY Received")
+            if response.protosrc not in self.SERVERS.keys():
+                # TODO: Add Servers MAC and port to SERVERS dict
+    
+        elif # TODO: Handle ARP requests
+            log.debug("ARP REQUEST Received")
+            if response.protosrc not in self.SERVERS.keys() and response.protosrc not in self.CLIENTS.keys():
+                self.CLIENTS[response.protosrc]={'client_mac':EthAddr(packet.payload.hwsrc),'port':inport}		#insert client's ip  mac and port to a forwarding table
+                                
+            if (response.protosrc in self.CLIENTS.keys()and response.protodst == self.LOADBALANCER_IP):
+                log.info("Client %s sent ARP req to LB %s"%(response.protosrc,response.protodst))
+                # Load Balancer intercepts ARP Client -> Server
+                # TODO: Send ARP Reply to the client, include the event.connection object
+            
+            elif response.protosrc in self.SERVERS.keys() and response.protodst in self.CLIENTS.keys():
+                log.info("Server %s sent ARP req to client"%response.protosrc)
+                # Load Balancer intercepts ARP from Client <- Server
+                # TODO: Send ARP Reply to the Server, include the event.connection object
+            else:
+                log.info("Invalid ARP request")
+
+    elif # TODO: Handle IP Packets
+        log.debug("Received IP Packet from %s" % packet.next.srcip)
+        # Handle Requests from Clients to Servers
+        # Install flow rule Client -> Server
+        if # TODO: Check if the packet is destined for the LB and the source is not a server :
+
+            self.update_lb_mapping(packet.next.srcip)
+            client_ip = # TODO: Get client IP from the packet
+            server_ip = self.LOADBALANCER_MAP.get(packet.next.srcip)
+            outport = # TODO: Get Port of Server
+
+            self.install_flow_rule_client_to_server(event,connection, outport, client_ip,server_ip)
+            
+            # TODO: Either use the code below to create a new Ethernet packet, or use Buffer_Id
+            eth = ethernet()
+            eth.type = # TODO: Set the correct Ethernet TYPE, to send an IP Packet
+            eth.dst = # TODO: Set the MAC destination
+            eth.src = # TODO: Set the MAC source
+            eth.set_payload(packet.next)
+
+            # Send the first packet (which was sent to the controller from the switch)
+            # to the chosen server, so there is no packetloss
+            msg= # TODO: Create an instance of a message which can be used to instruct the switch to send a packet
+            msg.data = eth.pack()
+            msg.in_port = # TODO: Set the correct in_port
+            
+            # TODO: Add an action which sets the MAC source to the LB's MAC
+            # TODO: Add an action which sets the MAC destination to the intended destination...
+
+            # TODO: Add an action which sets the IP source
+            # TODO: Add an action which sets the IP destination
+            # TODO: Add an action which sets the Outport
+
+            connection.send(msg)
+
+        # Handle traffic from Server to Client
+        # Install flow rule Client <- Server
+        elif packet.next.dstip in self.CLIENTS.keys(): #server to client
+            log.info("Installing flow rule from Server -> Client")
+            if packet.next.srcip in self.SERVERS.keys():
+
+                server_ip = # TODO: Get the source IP from the IP Packet
+
+                client_ip = self.LOADBALANCER_MAP.keys()[list(self.LOADBALANCER_MAP.values()).index(packet.next.srcip)]
+                outport=int(self.CLIENTS[client_ip].get('port'))
+                self.install_flow_rule_server_to_client(connection, outport, server_ip,client_ip)
+
+                # TODO: Either use the code below to create a new Ethernet packet, or use Buffer_Id
+                eth = ethernet()
+                eth.type =  # TODO: Set the correct Ethernet TYPE, to send an IP Packet
+                eth.dst =  # TODO: Set the MAC destination
+                eth.src =  # TODO: Set the MAC source
+                eth.set_payload(packet.next)
+
+                # Send the first packet (which was sent to the controller from the switch)
+                # to the chosen server, so there is no packetloss
+                msg =  # TODO: Create an instance of a message which can be used to instruct the switch to send a packet
+                msg.data = eth.pack()
+                msg.in_port =  # TODO: Set the correct in_port
+
+                # TODO: Add an action which sets the MAC source to the LB's MAC
+                # TODO: Add an action which sets the MAC destination to the intended destination...
+
+                # TODO: Add an action which sets the IP source
+                # TODO: Add an action which sets the IP destination
+                # TODO: Add an action which sets the Outport
+    
+                self.connection.send(msg)
+
+    
+    else:
+        log.info("Unknown Packet type: %s" % packet.type)
         return
+    END: Edit this section"""
+    return
 
 
 def launch(loadbalancer, servers):
