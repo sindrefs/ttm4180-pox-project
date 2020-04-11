@@ -4,69 +4,70 @@ import pox.openflow.libopenflow_01 as of
 from pox.lib.packet.arp import arp
 from pox.lib.packet.ipv4 import ipv4
 from pox.lib.addresses import EthAddr, IPAddr
+
 log = core.getLogger()
 import time
 import random
 import pox.log.color
 
-
 IDLE_TIMEOUT = 10
 LOADBALANCER_MAC = EthAddr("00:00:00:00:00:FE")
-ETHERNET_BROADCAST_ADDRESS=EthAddr("ff:ff:ff:ff:ff:ff")
+ETHERNET_BROADCAST_ADDRESS = EthAddr("ff:ff:ff:ff:ff:ff")
+
 
 class SimpleLoadBalancer(object):
 
-	def __init__(self, service_ip, server_ips = []):
-		core.openflow.addListeners(self)
-		self.SERVERS = {} # IPAddr(SERVER_IP)]={'server_mac':EthAddr(SERVER_MAC),'port': PORT_TO_SERVER}
-		self.CLIENTS = {}
-		self.LOADBALANCER_MAP = {} # Mapping between clients and servers
-		self.LOADBALANCER_IP = service_ip
-		self.SERVER_IPS = server_ips
-		self.ROBIN_COUNT = 0
+    def __init__(self, service_ip, server_ips=[]):
+        core.openflow.addListeners(self)
+        self.SERVERS = {}  # IPAddr(SERVER_IP)]={'server_mac':EthAddr(SERVER_MAC),'port': PORT_TO_SERVER}
+        self.CLIENTS = {}
+        self.LOADBALANCER_MAP = {}  # Mapping between clients and servers
+        self.LOADBALANCER_IP = service_ip
+        self.SERVER_IPS = server_ips
+        self.ROBIN_COUNT = 0
 
-	def _handle_ConnectionUp(self, event):
-		self.connection = event.connection
-		log.debug("FUNCTION: _handle_ConnectionUp")
-		""" START: Edit this section
+    def _handle_ConnectionUp(self, event):
+        self.connection = event.connection
+        log.debug("FUNCTION: _handle_ConnectionUp")
 
-		# TODO_M: Send ARP Requests to learn the MAC address of all Backend Servers.
+        # TODO_M: Send ARP Requests to learn the MAC address of all Backend Servers.
 
-		END: Edit this section"""
-		log.debug("Sent ARP Requests to all servers")
+        # START ANSWER
+        for server_ip in self.SERVER_IPS:
+            self.send_arp_request(self.connection, server_ip)
+        # END
+        log.debug("Sent ARP Requests to all servers")
 
-	def round_robin(self):
-		log.debug("FUNCTION: round_robin")
+    def round_robin(self):
+        log.debug("FUNCTION: round_robin")
 
-		""" START: Edit this section
+        # TODO_M: Implement logic to choose the next server according to
+        #         the Round Robin scheduling algorithm
 
-		# TODO_M: Implement logic to choose the next server according to 
-		#         the Round Robin scheduling algorithm
+        # START ANSWER
+        server_ip = self.SERVER_IPS[self.ROBIN_COUNT]
+        server = self.SERVERS[server_ip]
+        self.ROBIN_COUNT = (self.ROBIN_COUNT + 1) % len(self.SERVER_IPS)
+        # END
 
-		END: Edit this section"""
-		#START ANSWER
-		server = SERVERS.items()
-		#END
+        log.info("Round robin selected: %s" % server)
+        return server
 
-		log.info("Round robin selected: %s" % server)
-		return server
-
-	def update_lb_mapping(self, client_ip):
-		log.debug("FUNCTION: update_lb_mapping")
-		if client_ip in self.CLIENTS.keys():
-			if client_ip not in self.LOADBALANCER_MAP.keys():
-				""" START: Edit this section
+    def update_lb_mapping(self, client_ip):
+        log.debug("FUNCTION: update_lb_mapping")
+        if client_ip in self.CLIENTS.keys():
+            if client_ip not in self.LOADBALANCER_MAP.keys():
+                """ START: Edit this section
 
 				selected_server = # TODO: select the server which will handle the request
 				
 				self.LOADBALANCER_MAP[client_ip]=selected_server
 				END: Edit this section"""
 
+    def send_arp_reply(self, packet, connection, outport):
+        log.debug("FUNCTION: send_arp_reply")
 
-	def send_arp_reply(self, packet, connection, outport):
-		log.debug("FUNCTION: send_arp_reply")
-
-		""" START: Edit this section
+        """ START: Edit this section
 		arp_rep= # TODO: Create an ARP reply
 		arp_rep.hwtype = arp_rep.HW_TYPE_ETHERNET
 		arp_rep.prototype = arp_rep.PROTO_TYPE_IP
@@ -101,44 +102,41 @@ class SimpleLoadBalancer(object):
 		connection.send(msg)
 		END: Edit this section"""
 
-	def send_arp_request(self, connection, ip):
-		# Difficulties? https://en.wikipedia.org/wiki/Address_Resolution_Protocol#Example
+    def send_arp_request(self, connection, ip):
+        # Difficulties? https://en.wikipedia.org/wiki/Address_Resolution_Protocol#Example
 
-		log.debug("FUNCTION: send_arp_request")
+        log.debug("FUNCTION: send_arp_request")
 
-		""" START: Edit this section
+        arp_req = arp()  # Create an instance of an ARP REQUEST PACKET
+        arp_req.hwtype = arp_req.HW_TYPE_ETHERNET
+        arp_req.prototype = arp_req.PROTO_TYPE_IP
+        arp_req.hwlen = 6
+        arp_req.protolen = arp_req.protolen
+        arp_req.opcode = arp.REQUEST  # Set the opcode
+        arp_req.protodst = ip  # IP the load balancer is looking for
+        arp_req.hwsrc = LOADBALANCER_MAC  # Set the MAC source of the ARP REQUEST
+        arp_req.hwdst = ETHERNET_BROADCAST_ADDRESS  # Set the MAC address in such a way that the packet is marked as a Broadcast
+        arp_req.protosrc = self.LOADBALANCER_IP  # Set the IP source of the ARP REQUEST
 
-		arp_req = # TODO: Create an instance of an ARP REQUEST PACKET
-		arp_req.hwtype = arp_req.HW_TYPE_ETHERNET
-		arp_req.prototype = arp_req.PROTO_TYPE_IP
-		arp_req.hwlen = 6
-		arp_req.protolen = arp_req.protolen
-		arp_req.opcode = # TODO: Set the opcode
-		arp_req.protodst = # TODO: IP the load balancer is looking for
-		arp_req.hwsrc = # TODO: Set the MAC source of the ARP REQUEST
-		arp_req.hwdst = # TODO: Set the MAC address in such a way that the packet is marked as a Broadcast
-		arp_req.protosrc = # TODO: Set the IP source of the ARP REQUEST
+        # TODO: Needed to pass in arp_req as an argument or not to ethernet() (?)
+        eth = ethernet()  # Create an ethernet frame and set the arp_req as it's payload.
+        eth.type = ethernet.ARP_TYPE  # Set packet Typee
+        eth.dst = ETHERNET_BROADCAST_ADDRESS  # Set the MAC address in such a way that the packet is marked as a Broadcast
+        eth.set_payload(arp_req)
 
-		eth = # TODO: Create an ethernet frame and set the arp_req as it's payload.
-		eth.type =  # TODO: Set packet Typee
-		eth.dst = # TODO: Set the MAC address in such a way that the packet is marked as a Broadcast
-		eth.set_payload(arp_req)
+        msg = of.of.ofp_packet_out()  # Create the necessary Openflow Message to make the switch send the ARP Request
+        msg.data = eth.pack()
+        msg.actions.append(of.ofp_action_nw_addr(of.OFPAT_SET_NW_DST, ip))
+        msg.actions.append(of.ofp_action_output(
+            port=of.OFPP_FLOOD))  # Append an action to the message which makes the switch flood the packet out
 
-		msg = # TODO: create the necessary Openflow Message to make the switch send the ARP Request
-		msg.data = eth.pack()
-		msg.actions.append(of.ofp_action_nw_addr(of.OFPAT_SET_NW_DST,ip))
+        connection.send(msg)
 
-		TODO: append an action to the message which makes the switch flood the packet out
+    def install_flow_rule_client_to_server(self, event, connection, outport, client_ip, server_ip):
+        log.debug("FUNCTION: install_flow_rule_client_to_server")
+        self.install_flow_rule_server_to_client(connection, event.port, server_ip, client_ip)
 
-		connection.send(msg)
-		
-		END: Edit this section"""
-
-	def install_flow_rule_client_to_server(self,event, connection, outport, client_ip, server_ip):
-		log.debug("FUNCTION: install_flow_rule_client_to_server")
-		self.install_flow_rule_server_to_client(connection, event.port, server_ip,client_ip)
-
-		""" START: Edit this section
+        """ START: Edit this section
 		msg = # TODO: Create an instance of the type of Openflow packet you need to install flow table entries
 		msg.idle_timeout = IDLE_TIMEOUT
 
@@ -149,13 +147,13 @@ class SimpleLoadBalancer(object):
 		# TODO: Set Port to send matching packets out
 
 		 END: Edit this section"""
-		self.connection.send(msg)
-		log.info("Installed flow rule: %s -> %s" % (client_ip,server_ip))
-		
-	def install_flow_rule_server_to_client(self, connection, outport, server_ip, client_ip):
-		log.debug("FUNCTION: install_flow_rule_server_to_client")
+        self.connection.send(msg)
+        log.info("Installed flow rule: %s -> %s" % (client_ip, server_ip))
 
-		""" START: Edit this section
+    def install_flow_rule_server_to_client(self, connection, outport, server_ip, client_ip):
+        log.debug("FUNCTION: install_flow_rule_server_to_client")
+
+        """ START: Edit this section
 
 		msg = # TODO: Create an instance of the type of Openflow packet you need to install flow table entries
 		msg.idle_timeout = IDLE_TIMEOUT
@@ -168,18 +166,18 @@ class SimpleLoadBalancer(object):
 
 		END: Edit this section"""
 
-		self.connection.send(msg)
-		log.info("Installed flow rule: %s -> %s" % (server_ip,client_ip))
+        self.connection.send(msg)
+        log.info("Installed flow rule: %s -> %s" % (server_ip, client_ip))
 
-	def _handle_PacketIn(self, event):
-		log.debug("FUNCTION: _handle_PacketIn")
-		packet = event.parsed
-		connection = event.connection
-		inport = event.port
-		if packet.type == packet.LLDP_TYPE or packet.type == packet.IPV6_TYPE:
-			log.info("Received LLDP or IPv6 Packet...")
+    def _handle_PacketIn(self, event):
+        log.debug("FUNCTION: _handle_PacketIn")
+        packet = event.parsed
+        connection = event.connection
+        inport = event.port
+        if packet.type == packet.LLDP_TYPE or packet.type == packet.IPV6_TYPE:
+            log.info("Received LLDP or IPv6 Packet...")
 
-		""" START: Edit this section
+        """ START: Edit this section
 
 		elif # TODO: Handle ARP Packets
 			log.debug("Received ARP Packet")
@@ -280,17 +278,21 @@ class SimpleLoadBalancer(object):
 			log.info("Unknown Packet type: %s" % packet.type)
 			return
 		END: Edit this section"""
-		return
+        return
+
 
 def launch(loadbalancer, servers):
-	# Color-coding and pretty-printing the log output
-	pox.log.color.launch()
-	pox.log.launch(format="[@@@bold@@@level%(name)-23s@@@reset] " +
-						  "@@@bold%(message)s@@@normal")
-	log.info("Loading Simple Load Balancer module:\n\n-----------------------------------CONFIG----------------------------------\n")
-	server_ips = servers.replace(","," ").split()
-	server_ips = [IPAddr(x) for x in server_ips]
-	loadbalancer_ip = IPAddr(loadbalancer)
-	log.info("Loadbalancer IP: %s" % loadbalancer_ip)
-	log.info("Backend Server IPs: %s\n\n---------------------------------------------------------------------------\n\n" % ', '.join(str(ip) for ip in server_ips))
-	core.registerNew(SimpleLoadBalancer, loadbalancer_ip, server_ips)
+    # Color-coding and pretty-printing the log output
+    pox.log.color.launch()
+    pox.log.launch(format="[@@@bold@@@level%(name)-23s@@@reset] " +
+                          "@@@bold%(message)s@@@normal")
+    log.info(
+        "Loading Simple Load Balancer module:\n\n-----------------------------------CONFIG----------------------------------\n")
+    server_ips = servers.replace(",", " ").split()
+    server_ips = [IPAddr(x) for x in server_ips]
+    loadbalancer_ip = IPAddr(loadbalancer)
+    log.info("Loadbalancer IP: %s" % loadbalancer_ip)
+    log.info(
+        "Backend Server IPs: %s\n\n---------------------------------------------------------------------------\n\n" % ', '.join(
+            str(ip) for ip in server_ips))
+    core.registerNew(SimpleLoadBalancer, loadbalancer_ip, server_ips)
