@@ -137,11 +137,11 @@ def install_flow_rule_client_to_server(self, event, connection, outport, client_
 
     msg.match.dl_type = ethernet.IP_TYPE
     # TODO: Match nw_dst to load balancer ip or actual server ip???
-    msg.match = of.ofp_match(nw_src=client_ip, nw_dst = self.LOADBALANCER_IP)  # MATCH on destination and source IP
+    msg.match = of.ofp_match(nw_src=client_ip, nw_dst=self.LOADBALANCER_IP)  # MATCH on destination and source IP
 
     # SET dl_addr source and destination addresses
-    msg.actions.append(of.ofp_action_dl_addr.set_dst(dl_addr=self.CLIENTS[client_ip].clients_mac))
-    msg.actions.append(of.ofp_action_dl_addr.set_src(dl_addr=self.SERVERS[server_ip].server_mac))
+    msg.actions.append(of.ofp_action_dl_addr.set_dst(dl_addr=self.SERVERS[server_ip].server_mac))
+    msg.actions.append(of.ofp_action_dl_addr.set_src(dl_addr=self.CLIENTS[client_ip].clients_mac))
 
     # SET nw_addr source and destination addresses
     msg.actions.append(of.ofp_action_nw_addr.set_dst(nw_addr=server_ip))
@@ -157,18 +157,26 @@ def install_flow_rule_client_to_server(self, event, connection, outport, client_
 def install_flow_rule_server_to_client(self, connection, outport, server_ip, client_ip):
     log.debug("FUNCTION: install_flow_rule_server_to_client")
 
-    """ START: Edit this section
 
-    msg = # TODO: Create an instance of the type of Openflow packet you need to install flow table entries
+    msg =of.ofp_flow_mod() # Create an instance of the type of Openflow packet you need to install flow table entries
     msg.idle_timeout = IDLE_TIMEOUT
 
     msg.match.dl_type=ethernet.IP_TYPE
-    # TODO: MATCH on destination and source IP
-    # TODO: SET dl_addr source and destination addresses
-    # TODO: SET nw_addr source and destination addresses
-    # TODO: Set Port to send matching packets out
 
-    END: Edit this section"""
+    msg.match = of.ofp_match(nw_src=server_ip, nw_dst=client_ip)  # MATCH on destination and source IP
+
+
+    # SET dl_addr source and destination addresses
+    msg.actions.append(of.ofp_action_dl_addr.set_dst(dl_addr=self.CLIENTS[client_ip].clients_mac))
+    msg.actions.append(of.ofp_action_dl_addr.set_src(dl_addr=LOADBALANCER_MAC))
+
+    # SET nw_addr source and destination addresses
+    msg.actions.append(of.ofp_action_nw_addr.set_dst(nw_addr=client_ip))
+    msg.actions.append(of.ofp_action_nw_addr.set_src(nw_addr=self.LOADBALANCER_IP))
+
+    # Set Port to send matching packets out
+    msg.actions.append(of.ofp_action_output(port=self.CLIENTS[client_ip].port))
+
 
     self.connection.send(msg)
     log.info("Installed flow rule: %s -> %s" % (server_ip, client_ip))
