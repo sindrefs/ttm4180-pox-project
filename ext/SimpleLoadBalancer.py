@@ -45,8 +45,8 @@ class SimpleLoadBalancer(object):
         #         the Round Robin scheduling algorithm
 
         # START ANSWER
-        server_ip = self.SERVER_IPS[self.ROBIN_COUNT]
-        server = self.SERVERS[server_ip]
+        server = self.SERVER_IPS[self.ROBIN_COUNT] # Server ip ONLY
+        # OLD implementation:  server = self.SERVERS[server_ip]
         self.ROBIN_COUNT = (self.ROBIN_COUNT + 1) % len(self.SERVER_IPS)
         # END
 
