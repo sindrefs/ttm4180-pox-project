@@ -119,11 +119,11 @@ class SimpleLoadBalancer(object):
 
         msg = of.ofp_packet_out()  # Create the necessary Openflow Message to make the switch send the ARP Request
         msg.data = eth.pack()
-        # ORIGINAL: msg.actions.append(of.ofp_action_nw_addr(of.OFPAT_SET_NW_DST, ip))
-        msg.actions.append(of.ofp_action_nw_addr(of.ofp_port_rev_map.OFPAT_SET_NW_DST, ip))
-        # ORIGINAL: msg.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD))  # Append an action to the message
+        msg.actions.append(of.ofp_action_nw_addr(of.OFPAT_SET_NW_DST, ip))
+        #NEW: msg.actions.append(of.ofp_action_nw_addr(of.ofp_port_rev_map.OFPAT_SET_NW_DST, ip))
+        msg.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD))  # Append an action to the message
         # which makes the switch flood the packet out
-        msg.actions.append(of.ofp_action_output(port=of.ofp_port_rev_map.OFPP_FLOOD))  # Append an action to the
+        #NEW: msg.actions.append(of.ofp_action_output(port=of.ofp_port_rev_map.OFPP_FLOOD))  # Append an action to the
         # message which makes the switch flood the packet out
 
         connection.send(msg)
