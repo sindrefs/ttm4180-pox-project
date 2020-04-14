@@ -194,7 +194,8 @@ class SimpleLoadBalancer(object):
             if packet.payload.opcode == arp.REPLY:  # Handle ARP replies
                 log.debug("ARP REPLY Received")
                 if response.protosrc not in self.SERVERS.keys():
-                    self.SERVERS[IPAddr(response.protosrc)] = {"server_mac": EthAddr(response.hwsrc), "port": inport}  #
+                    self.SERVERS[IPAddr(response.protosrc)] = {"server_mac": EthAddr(response.hwsrc), "port": inport}
+                    log.info(self.SERVERS)#
                     # Add Servers MAC and port to SERVERS dict
 
             elif packet.payload.opcode == arp.REQUEST:  # Handle ARP requests
