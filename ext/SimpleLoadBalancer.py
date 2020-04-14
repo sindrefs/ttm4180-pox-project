@@ -85,7 +85,7 @@ class SimpleLoadBalancer(object):
         eth.src = LOADBALANCER_MAC  # Set source of the Ethernet Frame
         eth.set_payload(arp_rep)
 
-        msg = of.of.ofp_packet_out()  # create the necessary Openflow Message to make the switch send the ARP Reply
+        msg = of.ofp_packet_out()  # create the necessary Openflow Message to make the switch send the ARP Reply
         msg.data = eth.pack()
 
         # TODO: Correct way??
