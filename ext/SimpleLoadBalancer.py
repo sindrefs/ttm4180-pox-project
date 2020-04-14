@@ -90,7 +90,7 @@ class SimpleLoadBalancer(object):
 
         # TODO: Correct way??
         msg.actions.append(of.ofp_action_output(
-            port=packet.in_port))  # Append the output port which the packet should be forwarded to.
+            port=of.OFPP_IN_PORT))  # Append the output port which the packet should be forwarded to.
 
         msg.in_port = outport
         connection.send(msg)
