@@ -229,7 +229,7 @@ class SimpleLoadBalancer(object):
                 self.update_lb_mapping(packet.next.srcip)
                 client_ip = packet.payload.srcip  # Get client IP from the packet
                 server_ip = self.LOADBALANCER_MAP.get(packet.next.srcip)
-                outport = self.SERVERS[server]['port']  # Get Port of Server
+                outport = self.SERVERS[server_ip]['port']  # Get Port of Server
 
                 self.install_flow_rule_client_to_server(event, connection, outport, client_ip, server_ip)
 
