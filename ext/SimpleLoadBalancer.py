@@ -45,7 +45,7 @@ class SimpleLoadBalancer(object):
         #         the Round Robin scheduling algorithm
 
         # START ANSWER
-        server = self.SERVER_IPS[self.ROBIN_COUNT] # Server ip ONLY
+        server = self.SERVER_IPS[self.ROBIN_COUNT]  # Server ip ONLY
         # OLD implementation:  server = self.SERVERS[server_ip]
         self.ROBIN_COUNT = (self.ROBIN_COUNT + 1) % len(self.SERVER_IPS)
         # END
@@ -75,7 +75,7 @@ class SimpleLoadBalancer(object):
         arp_rep.hwsrc = LOADBALANCER_MAC  # Set MAC source
 
         # Reverse the src, dest to have an answer
-        arp_rep.protosrc = self.LOADBALANCER_IP #packet.payload.protodst  # Set IP source
+        arp_rep.protosrc = self.LOADBALANCER_IP  # packet.payload.protodst  # Set IP source
         arp_rep.protodst = packet.payload.protosrc  # Set IP destination
 
         # TODO: Needed to pass in arp_rep as an argument or not to ethernet() (?)
@@ -92,7 +92,7 @@ class SimpleLoadBalancer(object):
         msg.actions.append(of.ofp_action_output(
             port=of.OFPP_FLOOD))  # Append the output port which the packet should be forwarded to.
 
-        msg.in_port = outport
+        #msg.in_port = outport
         connection.send(msg)
 
     def send_arp_request(self, connection, ip):
@@ -120,10 +120,10 @@ class SimpleLoadBalancer(object):
         msg = of.ofp_packet_out()  # Create the necessary Openflow Message to make the switch send the ARP Request
         msg.data = eth.pack()
         msg.actions.append(of.ofp_action_nw_addr(of.OFPAT_SET_NW_DST, ip))
-        #NEW: msg.actions.append(of.ofp_action_nw_addr(of.ofp_port_rev_map.OFPAT_SET_NW_DST, ip))
+        # NEW: msg.actions.append(of.ofp_action_nw_addr(of.ofp_port_rev_map.OFPAT_SET_NW_DST, ip))
         msg.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD))  # Append an action to the message
         # which makes the switch flood the packet out
-        #NEW: msg.actions.append(of.ofp_action_output(port=of.ofp_port_rev_map.OFPP_FLOOD))  # Append an action to the
+        # NEW: msg.actions.append(of.ofp_action_output(port=of.ofp_port_rev_map.OFPP_FLOOD))  # Append an action to the
         # message which makes the switch flood the packet out
 
         connection.send(msg)
@@ -141,7 +141,6 @@ class SimpleLoadBalancer(object):
         # TODO: Match nw_dst to load balancer ip or actual server ip???
         msg.match.nw_src = client_ip  # MATCH on source IP
         msg.match.nw_dst = self.LOADBALANCER_IP  # MATCH on destination IP
-
 
         # SET dl_addr source and destination addresses
         msg.actions.append(of.ofp_action_dl_addr.set_dst(dl_addr=self.SERVERS[server_ip]['server_mac']))
@@ -168,7 +167,6 @@ class SimpleLoadBalancer(object):
 
         msg.match.nw_src = server_ip  # MATCH on source IP
         msg.match.nw_dst = client_ip  # MATCH on destination IP
-
 
         # SET dl_addr source and destination addresses
         msg.actions.append(of.ofp_action_dl_addr.set_dst(dl_addr=self.CLIENTS[client_ip]['client_mac']))
@@ -199,7 +197,7 @@ class SimpleLoadBalancer(object):
                 log.debug("ARP REPLY Received")
                 if response.protosrc not in self.SERVERS.keys():
                     self.SERVERS[IPAddr(response.protosrc)] = {"server_mac": EthAddr(response.hwsrc), "port": inport}
-                    log.info(self.SERVERS)#
+                    log.info(self.SERVERS)  #
                     # Add Servers MAC and port to SERVERS dict
 
             elif packet.payload.opcode == arp.REQUEST:  # Handle ARP requests
