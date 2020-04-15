@@ -1,5 +1,13 @@
 # ttm4180-pox-project
-Only some tutorials are completed
+Only some tutorials are completed.  
+Among these are  
+/ext/SimpleLoadBalancer.py  
+/misc/TASK1_of_tutorial.py  
+/misc/TASK3_of_tutorial.py  
+
+
+These tutorials were done as a part of the course TTM4180 - Nettverkshåndtering / Applied Networking spring 2020 at Norwegian University of Science and Technology
+
 
 ## README from original pox repo
 
