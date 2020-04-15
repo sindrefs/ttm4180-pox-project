@@ -88,9 +88,9 @@ class SimpleLoadBalancer(object):
         msg = of.ofp_packet_out()  # create the necessary Openflow Message to make the switch send the ARP Reply
         msg.data = eth.pack()
 
-        # TODO: Change to outport (test)
+        # TODO: Change to outport (test) (OLD PORT WAS: of.OFPP_IN_PORT)
         msg.actions.append(of.ofp_action_output(
-            port=of.OFPP_IN_PORT))  # Append the output port which the packet should be forwarded to.
+            port=outport))  # Append the output port which the packet should be forwarded to.
 
         msg.in_port = outport
         connection.send(msg)
