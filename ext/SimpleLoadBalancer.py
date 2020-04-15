@@ -69,7 +69,7 @@ class SimpleLoadBalancer(object):
         arp_rep.prototype = arp_rep.PROTO_TYPE_IP
         arp_rep.hwlen = 6
         arp_rep.protolen = arp_rep.protolen
-        arp_rep.opcode = arp_rep.REPLY  # Set the ARP TYPE to REPLY
+        arp_rep.opcode = arp.REPLY  # Set the ARP TYPE to REPLY
 
         arp_rep.hwdst = packet.src  # Set MAC destination
         arp_rep.hwsrc = LOADBALANCER_MAC  # Set MAC source
