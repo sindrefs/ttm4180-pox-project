@@ -75,7 +75,7 @@ class SimpleLoadBalancer(object):
         arp_rep.hwsrc = LOADBALANCER_MAC  # Set MAC source
 
         # Reverse the src, dest to have an answer
-        arp_rep.protosrc = self.LOADBALANCER_IP  # Set IP source
+        arp_rep.protosrc = packet.payload.protodst  # Set IP source
         arp_rep.protodst = packet.payload.protosrc  # Set IP destination
 
         # TODO: Needed to pass in arp_rep as an argument or not to ethernet() (?)
