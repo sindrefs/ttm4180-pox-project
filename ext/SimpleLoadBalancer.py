@@ -139,7 +139,9 @@ class SimpleLoadBalancer(object):
 
         msg.match.dl_type = ethernet.IP_TYPE
         # TODO: Match nw_dst to load balancer ip or actual server ip???
-        msg.match = of.ofp_match(nw_src=client_ip, nw_dst=self.LOADBALANCER_IP)  # MATCH on destination and source IP
+        msg.match.nw_src = client_ip  # MATCH on source IP
+        msg.match.nw_dst = self.LOADBALANCER_IP  # MATCH on destination IP
+
 
         # SET dl_addr source and destination addresses
         msg.actions.append(of.ofp_action_dl_addr.set_dst(dl_addr=self.SERVERS[server_ip]['server_mac']))
@@ -164,7 +166,9 @@ class SimpleLoadBalancer(object):
 
         msg.match.dl_type = ethernet.IP_TYPE
 
-        msg.match = of.ofp_match(nw_src=server_ip, nw_dst=client_ip)  # MATCH on destination and source IP
+        msg.match.nw_src = server_ip  # MATCH on source IP
+        msg.match.nw_dst = client_ip  # MATCH on destination IP
+
 
         # SET dl_addr source and destination addresses
         msg.actions.append(of.ofp_action_dl_addr.set_dst(dl_addr=self.CLIENTS[client_ip]['client_mac']))
