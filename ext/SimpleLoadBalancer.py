@@ -30,25 +30,19 @@ class SimpleLoadBalancer(object):
         self.connection = event.connection
         log.debug("FUNCTION: _handle_ConnectionUp")
 
-        # TODO_M: Send ARP Requests to learn the MAC address of all Backend Servers.
-
-        # START ANSWER
+        # Send ARP Requests to learn the MAC address of all Backend Servers.
         for server_ip in self.SERVER_IPS:
             self.send_arp_request(self.connection, server_ip)
-        # END
+
         log.debug("Sent ARP Requests to all servers")
 
     def round_robin(self):
         log.debug("FUNCTION: round_robin")
 
-        # TODO_M: Implement logic to choose the next server according to
-        #         the Round Robin scheduling algorithm
+        # Implement logic to choose the next server according to the Round Robin scheduling algorithm
 
-        # START ANSWER
         server = self.SERVER_IPS[self.ROBIN_COUNT]  # Server ip ONLY
-        # OLD implementation:  server = self.SERVERS[server_ip]
         self.ROBIN_COUNT = (self.ROBIN_COUNT + 1) % len(self.SERVER_IPS)
-        # END
 
         log.info("Round robin selected: %s" % server)
         return server
@@ -229,7 +223,7 @@ class SimpleLoadBalancer(object):
                 self.update_lb_mapping(packet.next.srcip)
                 client_ip = packet.payload.srcip  # Get client IP from the packet
                 server_ip = self.LOADBALANCER_MAP.get(packet.next.srcip)
-                log.info("SERVER IP " + str(server_ip) + "\n")
+                #log.info("SERVER IP " + str(server_ip) + "\n")
                 outport = self.SERVERS[server_ip]['port']  # Get Port of Server
 
                 self.install_flow_rule_client_to_server(event, connection, outport, client_ip, server_ip)
