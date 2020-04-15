@@ -7,9 +7,10 @@ Among these are
 
 
 These tutorials were done as a part of the course TTM4180 - Nettverkshåndtering / Applied Networking spring 2020 at Norwegian University of Science and Technology
-
-
-## README from original pox repo
+https://www.ntnu.edu/studies/courses/TTM4180#tab=omEmnet  
+  
+---
+### README from original pox repo
 
 POX is a networking software platform written in Python
 
