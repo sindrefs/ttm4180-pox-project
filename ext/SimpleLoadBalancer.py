@@ -75,7 +75,7 @@ class SimpleLoadBalancer(object):
         arp_rep.hwsrc = LOADBALANCER_MAC  # Set MAC source
 
         # Reverse the src, dest to have an answer
-        arp_rep.protosrc = self.LOADBALANCER_IP  # packet.payload.protodst  # Set IP source
+        arp_rep.protosrc = packet.payload.protodst  # packet.payload.protodst  # Set IP source
         arp_rep.protodst = packet.payload.protosrc  # Set IP destination
 
         # TODO: Needed to pass in arp_rep as an argument or not to ethernet() (?)
@@ -89,10 +89,10 @@ class SimpleLoadBalancer(object):
         msg.data = eth.pack()
 
         # TODO: Change to outport (test) (OLD PORT WAS: of.OFPP_IN_PORT or outport)
-        msg.actions.append(of.ofp_action_output(
-            port=of.OFPP_FLOOD))  # Append the output port which the packet should be forwarded to.
+        msg.actions.append(of.ofp_action_output(port=of.OFPP_IN_PORT))  # Append the output port which the packet
+        # should be forwarded to.
 
-        #msg.in_port = outport
+        msg.in_port = outport
         connection.send(msg)
 
     def send_arp_request(self, connection, ip):
