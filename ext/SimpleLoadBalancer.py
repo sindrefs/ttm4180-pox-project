@@ -75,10 +75,10 @@ class SimpleLoadBalancer(object):
         arp_rep.hwsrc = LOADBALANCER_MAC  # Set MAC source
 
         # Reverse the src, dest to have an answer
-        arp_rep.protosrc = packet.payload.protodst  # packet.payload.protodst  # Set IP source
+        arp_rep.protosrc = packet.payload.protodst  # Set IP source
         arp_rep.protodst = packet.payload.protosrc  # Set IP destination
 
-        # TODO: Needed to pass in arp_rep as an argument or not to ethernet() (?)
+
         eth = ethernet()  # Create an ethernet frame and set the arp_rep as it's payload.
         eth.type = ethernet.ARP_TYPE  # Set packet Type
         eth.dst = packet.src  # Set destination of the Ethernet Frame
@@ -88,7 +88,6 @@ class SimpleLoadBalancer(object):
         msg = of.ofp_packet_out()  # create the necessary Openflow Message to make the switch send the ARP Reply
         msg.data = eth.pack()
 
-        # TODO: Change to outport (test) (OLD PORT WAS: of.OFPP_IN_PORT or outport)
         msg.actions.append(of.ofp_action_output(port=of.OFPP_IN_PORT))  # Append the output port which the packet
         # should be forwarded to.
 
@@ -111,7 +110,6 @@ class SimpleLoadBalancer(object):
         arp_req.hwdst = ETHERNET_BROADCAST_ADDRESS  # Set the MAC address in such a way that the packet is marked as a Broadcast
         arp_req.protosrc = self.LOADBALANCER_IP  # Set the IP source of the ARP REQUEST
 
-        # TODO: Needed to pass in arp_req as an argument or not to ethernet() (?)
         eth = ethernet()  # Create an ethernet frame and set the arp_req as it's payload.
         eth.type = ethernet.ARP_TYPE  # Set packet Typee
         eth.dst = ETHERNET_BROADCAST_ADDRESS  # Set the MAC address in such a way that the packet is marked as a Broadcast
@@ -138,7 +136,7 @@ class SimpleLoadBalancer(object):
         msg.idle_timeout = IDLE_TIMEOUT
 
         msg.match.dl_type = ethernet.IP_TYPE
-        # TODO: Match nw_dst to load balancer ip or actual server ip???
+
         msg.match.nw_src = client_ip  # MATCH on source IP
         msg.match.nw_dst = self.LOADBALANCER_IP  # MATCH on destination IP
 
